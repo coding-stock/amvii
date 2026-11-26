@@ -264,6 +264,19 @@
     });
   }
 
+  // ---------- Gallery progress bar + swipe hint ----------
+  // The bar behaves like a scrollbar thumb: it starts at the share of the
+  // gallery that is visible and fills up as the visitor moves through it.
+  var hint = $('.hint');
+  var hintFill = $('.hint-bar i');
+
+  function setGalleryProgress(progress, visibleShare) {
+    if (!hint) return;
+    var fill = visibleShare + progress * (1 - visibleShare);
+    hintFill.style.transform = 'scaleX(' + fill + ')';
+    hint.classList.toggle('done', progress > 0.03);
+  }
+
   var mm = gsap.matchMedia();
 
   // Desktop: full parallax + pinned horizontal gallery
@@ -282,7 +295,10 @@
         scrub: 1,
         start: 'top top',
         end: function () { return '+=' + (track.scrollWidth - innerWidth); },
-        invalidateOnRefresh: true
+        invalidateOnRefresh: true,
+        onUpdate: function (self) {
+          setGalleryProgress(self.progress, innerWidth / track.scrollWidth);
+        }
       }
     });
   });
@@ -290,6 +306,21 @@
   // Mobile: gentler parallax (gallery is a native swipe row)
   mm.add('(max-width: 767px)', function () {
     addParallax(0.5);
+
+    var swipeTrack = $('.track');
+
+    function onSwipe() {
+      var maxScroll = swipeTrack.scrollWidth - swipeTrack.clientWidth;
+      var progress = maxScroll > 0 ? swipeTrack.scrollLeft / maxScroll : 0;
+      setGalleryProgress(progress, swipeTrack.clientWidth / swipeTrack.scrollWidth);
+    }
+
+    onSwipe();
+    swipeTrack.addEventListener('scroll', onSwipe, { passive: true });
+
+    return function () {
+      swipeTrack.removeEventListener('scroll', onSwipe);
+    };
   });
 
 
